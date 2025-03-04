@@ -1,129 +1,87 @@
-const fs = require('fs');
-const csv = require('csv-parser');
-const { PrismaClient } = require('@prisma/client');
+const fs = require("fs");
+const path = require("path");
+const csv = require("csv-parser");
+const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
-const filePath = './bus.csv'; // Replace with your CSV file path
-const checkpointFile = './checkpoint.json'; // File to store resume checkpoint
+const csvFilePath = path.join(__dirname, "bus.csv");
 
-// Function to read checkpoint
-function readCheckpoint() {
-  if (fs.existsSync(checkpointFile)) {
-    const checkpointData = fs.readFileSync(checkpointFile);
-    return JSON.parse(checkpointData).lastInsertedIndex || 0;
-  }
-  return 0;
-}
+const BATCH_SIZE = 100; // Adjust based on system performance
+const CONCURRENCY_LIMIT = 18; // Number of concurrent insertBatch calls
 
-// Function to write checkpoint
-function writeCheckpoint(index) {
-  fs.writeFileSync(checkpointFile, JSON.stringify({ lastInsertedIndex: index }));
-}
+async function importBusinesses() {
+  let totalInserted = 0;
+  let tasks = []; // Array to hold in-flight batch insert promises
+  let batch = [];
 
-async function importCsv() {
-  const businesses = [];
+  try {
+    const stream = fs.createReadStream(csvFilePath).pipe(csv());
+    for await (const row of stream) {
+      const imageUrls = [row["Image 1"], row["Image 2"], row["Image 3"]].filter(Boolean);
 
-  console.log(`Reading CSV file from: ${filePath}`);
-  let lastInsertedIndex = readCheckpoint(); // Start from last checkpoint
-  console.log(`Resuming from index: ${lastInsertedIndex}`);
-
-  fs.createReadStream(filePath)
-    .pipe(csv())
-    .on('data', (row) => {
-      const imageUrls = parseJsonString(row.imageUrls);
-      const keywords = parseJsonString(row.keyword);
-
-      businesses.push({
-        businessName: row.businessName,
-        phoneNumber: row.phoneNumber || null,
-        streetaddress: row.streetaddress || null,
-        city: row.city || null,
-        state: row.state || null,
-        zipcode: row.zipcode || null,
-        country: row.country || null,
-        address: row.address || null,
-        longitude: parseFloat(row.longitude) || null,
-        latitude: parseFloat(row.latitude) || null,
-        imageUrls: imageUrls || [],
-        websiteUrl: row.websiteUrl || null,
-        category: row.category || null,
-        keywords: keywords || [],
+      batch.push({
+        businessName: row["businessName"],
+        phoneNumber: row["phoneNumber"],
+        address: row["address"],
+        city: row["city"],
+        state: row["state"],
+        zipcode: row["zipcode"],
+        country: row["country"],
+        longitude: parseFloat(row["longitude"]) || 0.0,
+        latitude: parseFloat(row["latitude"]) || 0.0,
+        websiteUrl: row["websiteUrl"] || null,
+        imageUrls: imageUrls.length > 0 ? imageUrls : [],
+        category: row["category"] || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
-    })
-    .on('end', async () => {
-      console.log(`\nCSV file successfully processed. Total businesses parsed: ${businesses.length}\n`);
 
-      console.log('Importing data into the database...');
-      for (let i = lastInsertedIndex; i < businesses.length; i++) {
-        const business = businesses[i];
-        try {
-          await prisma.business.create({
-            data: {
-              businessName: business.businessName,
-              phoneNumber: business.phoneNumber,
-              streetaddress: business.streetaddress,
-              city: business.city,
-              state: business.state,
-              zipcode: business.zipcode,
-              country: business.country,
-              address: business.address,
-              longitude: business.longitude,
-              latitude: business.latitude,
-              imageUrls: business.imageUrls,
-              websiteUrl: business.websiteUrl,
-              category: business.category,
-              reviews: {}, // No reviews initially
-              keywords: {
-                connectOrCreate: business.keywords.map((keyword) => ({
-                  where: { name: keyword.trim() },
-                  create: {
-                    name: keyword.trim(),
-                    slug: keyword.trim().toLowerCase().replace(/ /g, '-'),
-                  },
-                })),
-              },
-            },
-          });
-          console.log(`Added business: ${business.businessName}`);
-          writeCheckpoint(i); // Save the checkpoint after successful insertion
-        } catch (error) {
-          console.error(`Error adding ${business.businessName} at index ${i}:`, error);
-          console.log(`Pausing to resume after internet reconnection...`);
-          await delay(5000); // Wait before retrying
-          i--; // Retry the same index
+      if (batch.length === BATCH_SIZE) {
+        // Start a new batch insertion without awaiting immediately
+        tasks.push(insertBatch(batch));
+        batch = []; // Reset the batch array
+
+        // If we've hit our concurrency limit, wait for the current batch of tasks to complete
+        if (tasks.length >= CONCURRENCY_LIMIT) {
+          const results = await Promise.all(tasks);
+          totalInserted += results.reduce((sum, count) => sum + count, 0);
+          tasks = [];
         }
       }
-
-      console.log('All businesses imported successfully!');
-      fs.unlinkSync(checkpointFile); // Remove checkpoint after successful import
-      await prisma.$disconnect();
-    })
-    .on('error', (error) => {
-      console.error('Error reading CSV file:', error);
-      prisma.$disconnect();
-      process.exit(1);
-    });
-}
-
-// Helper function to parse JSON-like fields from CSV
-function parseJsonString(str) {
-  if (!str || str.trim() === "") return []; // Handle empty fields
-  try {
-    const cleanedStr = str.trim().replace(/^{/, "[").replace(/}$/, "]").replace(/""/g, '"');
-    return JSON.parse(cleanedStr);
+    }
+    
+    // Handle any remaining rows
+    if (batch.length > 0) {
+      tasks.push(insertBatch(batch));
+    }
+    
+    if (tasks.length > 0) {
+      const results = await Promise.all(tasks);
+      totalInserted += results.reduce((sum, count) => sum + count, 0);
+    }
+    
+    console.log(`🎉 Import completed! Total Inserted: ${totalInserted}`);
   } catch (error) {
-    console.warn(`Failed to parse JSON: "${str}". Returning empty array.`);
-    return []; // Return empty array if parsing fails
+    console.error("❌ Error processing CSV:", error);
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
-// Helper function to add delay (for reconnection attempts)
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+// Optimized Batch Insert Function
+async function insertBatch(batch) {
+  try {
+    const result = await prisma.business.createMany({
+      data: batch,
+      skipDuplicates: true,
+    });
+    console.log(`✅ Inserted ${result.count} businesses`);
+    return result.count;
+  } catch (error) {
+    console.error("❌ Error inserting batch:", error.message);
+    return 0;
+  }
 }
 
-importCsv().catch((error) => {
-  console.error('Error importing CSV:', error);
-  prisma.$disconnect();
-  process.exit(1);
-});
+// Run the script
+importBusinesses();
