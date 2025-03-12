@@ -34,8 +34,7 @@ const categories = [
     },
     {
       category: "Cafe",
-      tags: "Coffee Shop, Tea Room, Dessert Cafe, Internet Cafe, Board Game Cafe, Study Cafe, Bakery Cafe , Espresso, Americano, Cappuccino, Latte, Mocha, Macchiato, Flat White, Ristretto, Affogato, Cortado, Doppio, Lungo, Red Eye, Black Eye, Irish Coffee, Turkish Coffee, Vietnamese Coffee, Café au Lait, Cold Brew, Nitro Cold Brew, Iced Coffee, Frappé, Espresso Con Panna, Bicerin, Breve, Galão, Kopi Luwak, Mazagran, Café Cubano, Wiener Melange, Indian coffee , Indian cafe"
-
+      tags: "Coffee Shop, Tea Room, Dessert Cafe, Internet Cafe, Board Game Cafe, Study Cafe, Bakery Cafe , Espresso, Americano, Cappuccino, Latte, Mocha, Macchiato, Flat White, Ristretto, Affogato, Cortado, Doppio, Lungo, Red Eye, Black Eye, Irish Coffee, Turkish Coffee, Vietnamese Coffee, Café au Lait, Cold Brew, Nitro Cold Brew, Iced Coffee, Frappé, Espresso Con Panna, Bicerin, Breve, Galão, Kopi Luwak, Mazagran, Café Cubano, Wiener Melange, Indian coffee , Indian cafe , cafe , Cafe"
     },
     {
       category: "Hairstyle/Saloon",
@@ -55,8 +54,7 @@ const categories = [
     },
     {
       category: "Law",
-      tags: "Indian Law, Immigrants , Immigrant , Indian Immigrants, Move To USA, Indian In America, US Visa Process, Indian Business Abroad, Immigration Made Easy, NRI Community, Green Card Journey, Work In USA, Desi Abroad, Indian law, Legal services, Legal advice, Court cases, Family law, Criminal law, Civil law ,Indian law, Legal services, Legal advice, Court cases, Family law, Criminal law, Civil law, Property law, Contract law, Intellectual property, Legal documentation, Real estate law, Employment law, Tax law, Corporate law, Legal consultancy, Divorce lawyer, Marriage registration, Legal representation, Legal fees, Bail services, Legal aid, Legal contracts, Notary services, Legal dispute resolution, Legal research, Labor law, Consumer rights, Legal notices, Mediation services, Arbitration, Court filing, Land acquisition, Consumer court, Human rights, Cyber law, Trademark registration, Legal compliance, Legal proceedings, Bankruptcy law, Law firm, Legal expert, Law education, Legal profession, Legal audit, Legal claims, High court lawyer, Supreme court lawyer, Legal seminars, Law training, Advocate services, Legal advisor, Legal paperwork, Personal injury lawyer, Litigation services, Criminal defense lawyer.,advocate,attorney,vakil,vakeel,judge"
-    },
+      tags: "Indian Law, Immigrants , Immigrant , Indian Immigrants, Move To USA, Indian In America, US Visa Process, Indian Business Abroad, Immigration Made Easy, NRI Community, Green Card Journey, Work In USA, Desi Abroad, Indian law, Legal services, Legal advice, Court cases, Family law, Criminal law, Civil law ,Indian law, Legal services, Legal advice, Court cases, Family law, Criminal law, Civil law, Property law, Contract law, Intellectual property, Legal documentation, Real estate law, Employment law, Tax law, Corporate law, Legal consultancy, Divorce lawyer, Marriage registration, Legal representation, Legal fees, Bail services, Legal aid, Legal contracts, Notary services, Legal dispute resolution, Legal research, Labor law, Consumer rights, Legal notices, Mediation services, Arbitration, Court filing, Land acquisition, Consumer court, Human rights, Cyber law, Trademark registration, Legal compliance, Legal proceedings, Bankruptcy law, Law firm, Legal expert, Law education, Legal profession, Legal audit, Legal claims, High court lawyer, Supreme court lawyer, Legal seminars, Law training, Advocate services, Legal advisor, Legal paperwork, Personal injury lawyer, Litigation services, Criminal defense lawyer.,advocate,attorney,vakil,vakeel,judge, Lawyer " },
     {
       category: "Temple",
       tags: "Mandir darshan, Lord Shiva mandir, Lord Vishnu mandir, Goddess Lakshmi mandir, Lord Ganesha mandir, Mandir aarti, Pooja services, Mandir rituals, Mandir blessings, Devotional mandir, Mandir pooja items, Mandir festivals, Sacred mandir, Mandir priests, Mandir architecture, Vedic mandir, Mandir traditions, Holy mandir, Mandir tours, Pilgrimage mandir, Mandir offerings, Mandir sanctum, Mandir carvings, Mandir history, Spiritual mandir, Mandir management, Indian worship, Mandir decorations, Lord Hanuman mandir, Mandir lighting, Mandir singing, Mandir ceremonies, Mandir experience, Mandir photography, Mandir prayers, Mandir idols, Indian cultural site, Mandir ambience, Lord Krishna mandir, Mandir service, Mandir rituals and traditions, Mandir garden, Devotion center, Mandir music, Mandir heritage, Mandir visit plans, Sacred site, Mandir exploration, Mandir community, Mandir art, Mandir legends, Holy site, Mandir atmosphere, Spiritual journey, Lord Rama mandir, Mandir culture.,Indian temple, mandir, gurudwara, bhakti, bhavna, pooja, aradhna"
@@ -93,7 +91,7 @@ async function updateBusinessesWithTags() {
       const businesses = await prisma.business.findMany({
         where: {
           category,
-          state: "California"
+          city: "Fresno" 
         },
         include: {
           Tag: true

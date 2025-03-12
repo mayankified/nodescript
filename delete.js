@@ -1,19 +1,16 @@
 const { PrismaClient } = require("@prisma/client");
-
+// import {PrismaClient} from "@prisma/client"
 const prisma = new PrismaClient();
 
 async function deleteBusinessesInCalifornia() {
   try {
     // Step 1: Get all business IDs in California
-    const businessesInCA = await prisma.business.findMany({
-      where: { state: "California" },
-      select: { id: true },
-    });
+    const businessesInCA = await prisma.business.findMany();
 
     const businessIds = businessesInCA.map((b) => b.id);
 
     if (businessIds.length === 0) {
-      console.log("No businesses found in California.");
+      console.log("No businesses found in Fresno.");
       return;
     }
 

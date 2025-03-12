@@ -4,7 +4,7 @@ const csv = require("csv-parser");
 const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
-const csvFilePath = path.join(__dirname, "bus.csv");
+const csvFilePath = path.join(__dirname, "hahhaha.csv");
 
 const BATCH_SIZE = 100; // Adjust based on system performance
 const CONCURRENCY_LIMIT = 18; // Number of concurrent insertBatch calls
@@ -27,6 +27,7 @@ async function importBusinesses() {
         state: row["state"],
         zipcode: row["zipcode"],
         country: row["country"],
+        streetaddress:row["streetaddress"],
         longitude: parseFloat(row["longitude"]) || 0.0,
         latitude: parseFloat(row["latitude"]) || 0.0,
         websiteUrl: row["websiteUrl"] || null,
